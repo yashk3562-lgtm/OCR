@@ -160,7 +160,7 @@ def _render_preview(uploaded_file: Any) -> None:
         st.warning("Unsupported preview format.")
 
 
-def _process_invoice(uploaded_file: Any, use_mock_ocr: bool) -> None:
+def _process_invoice(uploaded_file: Any, use_mock_ocr: bool, include_field_translations: bool) -> None:
     if uploaded_file is None and not use_mock_ocr:
         st.warning("Upload an invoice or enable mock OCR output.")
         return
@@ -199,7 +199,11 @@ def _process_invoice(uploaded_file: Any, use_mock_ocr: bool) -> None:
             except ImportError:
                 from extraction_agent import get_last_sarvam_chat_response
             st.session_state.extraction_raw = get_last_sarvam_chat_response()
-            st.session_state.field_translations = extract_invoice_field_translations(ocr_text, ocr_result)
+            if include_field_translations:
+                st.write("Extracting field translations...")
+                st.session_state.field_translations = extract_invoice_field_translations(ocr_text, ocr_result)
+            else:
+                st.session_state.field_translations = []
 
             st.write("Validating invoice...")
             validation = validate_invoice(invoice)
@@ -360,6 +364,7 @@ def main() -> None:
     with st.sidebar:
         st.subheader("Processing controls")
         use_mock_ocr = st.checkbox("Use mock OCR output", value=True)
+        include_field_translations = st.checkbox("Extract field translations", value=False)
         st.caption("Planned extensions: duplicate detection, GST validation, fraud checks, PO matching, three-way matching, vendor risk, payment recommendation, and exception routing.")
 
     left, right = st.columns([0.9, 1.1], gap="large")
@@ -371,7 +376,7 @@ def main() -> None:
         )
         run_button = st.button("Run AI Extraction", type="primary", use_container_width=True)
         if run_button:
-            _process_invoice(uploaded_file, use_mock_ocr)
+            _process_invoice(uploaded_file, use_mock_ocr, include_field_translations)
 
     with right:
         _render_preview(uploaded_file)
