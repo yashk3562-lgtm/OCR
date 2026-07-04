@@ -10,6 +10,55 @@ Standalone Streamlit app for converting Hindi handwritten or printed invoices in
 - Validate invoice fields and generate ERP payloads
 - Supports mock OCR mode for demos without a Sarvam API key
 
+## Architecture
+
+```text
+User
+  |
+  v
+Streamlit UI (app.py)
+  |
+  +--> Sarvam OCR wrapper (sarvam_ocr.py)
+  |      |
+  |      +--> Sarvam Document Intelligence
+  |      +--> OCR text and metadata
+  |
+  +--> Extraction agent (extraction_agent.py)
+  |      |
+  |      +--> Sarvam Chat structured extraction
+  |      +--> Regex fallback parser
+  |      +--> Optional field translations
+  |
+  +--> Validation agent (validation_agent.py)
+  |      |
+  |      +--> Required field checks
+  |      +--> Amount and review checks
+  |
+  +--> Export utilities (export_utils.py)
+         |
+         +--> Invoice JSON
+         +--> Line item CSV
+         +--> ERP payload JSON
+```
+
+### Components
+
+- `app.py`: Streamlit entry point. Handles upload, preview, processing controls, result tabs, and downloads.
+- `sarvam_ocr.py`: Runs Sarvam Document Intelligence for live OCR, parses OCR ZIP outputs, and supports text extraction from multiple response shapes.
+- `extraction_agent.py`: Converts OCR text into normalized invoice metadata using Sarvam Chat, with local fallback parsing when the model call fails or returns incomplete fields.
+- `validation_agent.py`: Applies AP validation checks and marks invoices that need human review.
+- `export_utils.py`: Builds ERP-ready payloads and downloadable JSON/CSV files.
+- `models.py`: Stores shared schema defaults, field labels, supported file types, and mock OCR text.
+- `utils.py`: Contains shared helpers for secrets, text cleanup, and INR formatting.
+
+### Processing Flow
+
+1. User uploads an invoice or enables mock OCR in the Streamlit sidebar.
+2. The OCR layer returns readable invoice text and provider metadata.
+3. The extraction layer creates normalized English invoice metadata.
+4. Validation checks required fields, numeric consistency, and review status.
+5. The app displays overview, line items, validation output, ERP payload, and downloads.
+
 ## Setup
 
 ```bash
@@ -54,4 +103,3 @@ export SARVAM_CHAT_MODEL="sarvam-105b"
 ## Repository
 
 Source pushed to GitHub: https://github.com/yashk3562-lgtm/OCR.git
-
