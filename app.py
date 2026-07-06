@@ -12,14 +12,14 @@ import streamlit as st
 try:
     from .export_utils import build_erp_payload, to_csv_bytes, to_json_bytes
     from .extraction_agent import extract_invoice_metadata, extract_invoice_field_translations
-    from .models import FIELD_LABELS, MOCK_OCR_TEXT, SUPPORTED_FILE_TYPES
+    from .models import FIELD_LABELS, SUPPORTED_FILE_TYPES
     from .sarvam_ocr import extract_text, run_sarvam_ocr
     from .utils import format_currency
     from .validation_agent import validate_invoice
 except ImportError:  # pragma: no cover - supports `streamlit run invoice_agent/app.py`
     from export_utils import build_erp_payload, to_csv_bytes, to_json_bytes
     from extraction_agent import extract_invoice_metadata, extract_invoice_field_translations
-    from models import FIELD_LABELS, MOCK_OCR_TEXT, SUPPORTED_FILE_TYPES
+    from models import FIELD_LABELS, SUPPORTED_FILE_TYPES
     from sarvam_ocr import extract_text, run_sarvam_ocr
     from utils import format_currency
     from validation_agent import validate_invoice
@@ -160,32 +160,24 @@ def _render_preview(uploaded_file: Any) -> None:
         st.warning("Unsupported preview format.")
 
 
-def _process_invoice(uploaded_file: Any, use_mock_ocr: bool, include_field_translations: bool) -> None:
-    if uploaded_file is None and not use_mock_ocr:
-        st.warning("Upload an invoice or enable mock OCR output.")
+def _process_invoice(uploaded_file: Any, include_field_translations: bool) -> None:
+    if uploaded_file is None:
+        st.warning("Upload an invoice before running extraction.")
         return
 
-    filename = uploaded_file.name if uploaded_file is not None else "mock_invoice.txt"
+    filename = uploaded_file.name
     extension = Path(filename).suffix.lower().lstrip(".")
-    if uploaded_file is not None and extension not in SUPPORTED_FILE_TYPES:
+    if extension not in SUPPORTED_FILE_TYPES:
         st.error("Unsupported file type. Use PNG, JPG, JPEG, or PDF.")
         return
 
     try:
         with st.status("Processing invoice", expanded=True) as status:
             st.write("Uploading invoice...")
-            file_bytes = uploaded_file.getvalue() if uploaded_file is not None else MOCK_OCR_TEXT.encode("utf-8")
+            file_bytes = uploaded_file.getvalue()
 
             st.write("Running Sarvam OCR...")
-            if use_mock_ocr:
-                ocr_result = {
-                    "mode": "mock",
-                    "filename": filename,
-                    "text": MOCK_OCR_TEXT,
-                    "metadata": {"provider": "mock", "language_hints": ["Hindi", "English"]},
-                }
-            else:
-                ocr_result = run_sarvam_ocr(file_bytes, filename)
+            ocr_result = run_sarvam_ocr(file_bytes, filename)
 
             ocr_text = extract_text(ocr_result)
             if not ocr_text:
@@ -363,7 +355,6 @@ def main() -> None:
 
     with st.sidebar:
         st.subheader("Processing controls")
-        use_mock_ocr = st.checkbox("Use mock OCR output", value=True)
         include_field_translations = st.checkbox("Extract field translations", value=False)
         st.caption("Planned extensions: duplicate detection, GST validation, fraud checks, PO matching, three-way matching, vendor risk, payment recommendation, and exception routing.")
 
@@ -376,7 +367,7 @@ def main() -> None:
         )
         run_button = st.button("Run AI Extraction", type="primary", use_container_width=True)
         if run_button:
-            _process_invoice(uploaded_file, use_mock_ocr, include_field_translations)
+            _process_invoice(uploaded_file, include_field_translations)
 
     with right:
         _render_preview(uploaded_file)

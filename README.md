@@ -8,7 +8,7 @@ Standalone Streamlit app for converting Hindi handwritten or printed invoices in
 - Extract invoice metadata, line items, GSTIN, PAN, totals, and addresses
 - Translate Hindi/Hinglish text into English
 - Validate invoice fields and generate ERP payloads
-- Supports mock OCR mode for demos without a Sarvam API key
+- Uses live Sarvam OCR and chat extraction for uploaded invoices
 
 ## Architecture
 
@@ -48,12 +48,12 @@ Streamlit UI (app.py)
 - `extraction_agent.py`: Converts OCR text into normalized invoice metadata using Sarvam Chat, with local fallback parsing when the model call fails or returns incomplete fields.
 - `validation_agent.py`: Applies AP validation checks and marks invoices that need human review.
 - `export_utils.py`: Builds ERP-ready payloads and downloadable JSON/CSV files.
-- `models.py`: Stores shared schema defaults, field labels, supported file types, and mock OCR text.
+- `models.py`: Stores shared schema defaults, field labels, supported file types, and sample OCR text for parser development.
 - `utils.py`: Contains shared helpers for secrets, text cleanup, and INR formatting.
 
 ### Processing Flow
 
-1. User uploads an invoice or enables mock OCR in the Streamlit sidebar.
+1. User uploads an invoice in the Streamlit interface.
 2. The OCR layer returns readable invoice text and provider metadata.
 3. The extraction layer creates normalized English invoice metadata.
 4. Validation checks required fields, numeric consistency, and review status.
@@ -98,7 +98,7 @@ export SARVAM_CHAT_MODEL="sarvam-105b"
 ## Notes
 
 - The app uses the `sarvamai` SDK for document digitization and Sarvam Chat for structured extraction.
-- If you do not have a valid API key, enable `Use mock OCR output` in the sidebar for demo behavior.
+- A valid `SARVAM_API_KEY` is required for invoice processing.
 
 ## Repository
 
